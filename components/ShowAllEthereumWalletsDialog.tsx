@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,8 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { EyeOff, Eye, Clipboard, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ethers, formatEther } from "ethers";  // Updated import for version 6
 
-// New component for displaying wallets
 export default function ShowAllEthereumWalletsDialog({
   ethereumWallets,
   deleteWallet,
@@ -17,9 +17,11 @@ export default function ShowAllEthereumWalletsDialog({
   deleteWallet: (index: number) => void;
   copyToClipboard: (content: string) => void;
 }) {
-  // Track which wallet has its private key visible
   const [visiblePrivateKeys, setVisiblePrivateKeys] = useState<boolean[]>(new Array(ethereumWallets.length).fill(false));
+  const [balances, setBalances] = useState<string[]>(new Array(ethereumWallets.length).fill("Loading..."));
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
+  // Function to toggle private key visibility
   const togglePrivateKeyVisibility = (index: number) => {
     setVisiblePrivateKeys((prevState) => {
       const updatedVisibility = [...prevState];
@@ -27,6 +29,26 @@ export default function ShowAllEthereumWalletsDialog({
       return updatedVisibility;
     });
   };
+
+  // Fetch balances using Alchemy
+  useEffect(() => {
+    const provider = new ethers.JsonRpcProvider(`https://eth-sepolia.g.alchemy.com/v2/C5ZIyduVqHreg9IxHty9ChQ1ntRZrv3E`);
+
+    // Function to fetch and update balances for each wallet
+    const fetchBalances = async () => {
+      const updatedBalances = await Promise.all(
+        ethereumWallets.map(async (wallet) => {
+          const balance = await provider.getBalance(wallet.address);
+          return formatEther(balance); // Convert balance to Ether
+        })
+      );
+      setBalances(updatedBalances);
+    };
+
+    if (isDialogOpen) {
+      fetchBalances();
+    }
+  }, [ethereumWallets]);
 
   return (
     <Dialog>
@@ -43,10 +65,8 @@ export default function ShowAllEthereumWalletsDialog({
             ethereumWallets.map((wallet, index) => (
               <Card key={index} className="w-full mb-4">
                 <CardContent className="flex flex-col gap-3">
-                  {/* Wallet Number */}
-                  <h2 className="font-bold py-2">Wallet {index + 1}</h2>
+                  <h2 className="font-bold py-2">Wallet {index + 1} - Balance: {`${balances[index]} ETH`} </h2>
 
-                  {/* Address Field */}
                   <div className="mb-4">
                     <Label htmlFor={`address-${index}`} className="text-gray-400">
                       Address
@@ -65,7 +85,20 @@ export default function ShowAllEthereumWalletsDialog({
                     </div>
                   </div>
 
-                  {/* Private Key Field */}
+                  {/* <div className="mb-4">
+                    <Label htmlFor={`balance-${index}`} className="text-gray-400">
+                      Balance
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id={`balance-${index}`}
+                        value={balances[index] ? `${balances[index]} ETH` : "Loading..."}
+                        readOnly
+                        className="bg-white-700 dark:bg-gray-700 text-black dark:text-white border-black dark:border-none pl-4 pr-16 py-2 rounded-lg w-full"
+                      />
+                    </div>
+                  </div> */}
+
                   <div className="mb-4">
                     <Label htmlFor={`privateKey-${index}`} className="text-gray-400">
                       Private Key
@@ -77,7 +110,6 @@ export default function ShowAllEthereumWalletsDialog({
                         readOnly
                         className="bg-white-700 dark:bg-gray-700 text-black dark:text-white border-black dark:border-none pl-4 pr-16 py-2 rounded-lg w-full"
                       />
-                      {/* Toggle Visibility Icon */}
                       {visiblePrivateKeys[index] ? (
                         <Eye
                           className="absolute right-10 top-2 w-5 h-5 cursor-pointer text-gray-400 dark:hover:text-white hover:text-black"
@@ -89,7 +121,6 @@ export default function ShowAllEthereumWalletsDialog({
                           onClick={() => togglePrivateKeyVisibility(index)}
                         />
                       )}
-                      {/* Copy Icon */}
                       <Clipboard
                         className="absolute right-3 top-2 w-5 h-5 cursor-pointer text-gray-400 dark:hover:text-white hover:text-black"
                         onClick={() => copyToClipboard(wallet.privateKey)}
@@ -97,13 +128,12 @@ export default function ShowAllEthereumWalletsDialog({
                     </div>
                   </div>
 
-                  {/* Delete Button */}
                   <Button
                     variant="destructive"
                     className="flex items-center gap-2"
                     onClick={() => deleteWallet(index)}
-                  > 
-                    <Trash className="w-5 h-5" />                     
+                  >
+                    <Trash className="w-5 h-5" />
                     Delete Wallet
                   </Button>
                 </CardContent>

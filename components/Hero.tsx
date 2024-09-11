@@ -1,12 +1,11 @@
 "use client"
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import MnemonicDisplay from "./MnemonicDisplay";
 import { Button } from "./ui/button";
 import { toast } from "sonner"
 import {
   Card,
   CardContent,
-  CardHeader
 } from "@/components/ui/card"
 
 import { EyeOff, Eye, Clipboard } from "lucide-react";
@@ -47,9 +46,12 @@ export default function Hero() {
   };
   
   const generateSecretPhrase = () => {
-    const mnemonicPhrase = generateMnemonic();
-    setMnemonic(mnemonicPhrase);
-    setShowMnemonic(true);
+    if(!mnemonic) {
+      const mnemonicPhrase = generateMnemonic();
+      setMnemonic(mnemonicPhrase);
+      setShowMnemonic(true);
+      toast.success("Secret Phrase Generated!");
+    }
   };
 
   const generateSolanaWallet = async () => {
@@ -248,7 +250,6 @@ export default function Hero() {
             copyToClipboard={copyToClipboard}
           />
         </div>
-      
     </main>
   );
 }

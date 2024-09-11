@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,8 +6,21 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { EyeOff, Eye, Clipboard, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Connection, PublicKey } from "@solana/web3.js";
 
-// New component for displaying wallets
+const connection = new Connection('https://api.devnet.solana.com', 'confirmed');
+
+async function getSolanaBalance(address: string): Promise<number> {
+  try {
+    const pubKey = new PublicKey(address);
+    const balance = await connection.getBalance(pubKey);
+    return balance / 1e9; // Convert lamports to SOL
+  } catch (error) {
+    console.error("Error fetching balance:", error);
+    return 0;
+  }
+}
+
 export default function ShowAllSolanaWalletsDialog({
   solanaWallets,
   deleteWallet,
@@ -17,8 +30,21 @@ export default function ShowAllSolanaWalletsDialog({
   deleteWallet: (index: number) => void;
   copyToClipboard: (content: string) => void;
 }) {
-  // Track which wallet has its private key visible
   const [visiblePrivateKeys, setVisiblePrivateKeys] = useState<boolean[]>(new Array(solanaWallets.length).fill(false));
+  const [walletBalances, setWalletBalances] = useState<number[]>(new Array(solanaWallets.length).fill(0));
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  // Fetch balances when the dialog is opened
+  useEffect(() => {
+    if (isDialogOpen) {
+      fetchBalances();
+    }
+  }, [isDialogOpen]);
+
+  const fetchBalances = async () => {
+    const balances = await Promise.all(solanaWallets.map(wallet => getSolanaBalance(wallet.address)));
+    setWalletBalances(balances);
+  };
 
   const togglePrivateKeyVisibility = (index: number) => {
     setVisiblePrivateKeys((prevState) => {
@@ -29,7 +55,7 @@ export default function ShowAllSolanaWalletsDialog({
   };
 
   return (
-    <Dialog>
+    <Dialog onOpenChange={(open) => setIsDialogOpen(open)}>
       <DialogTrigger asChild>
         <Button variant="default">Show All Solana Wallets</Button>
       </DialogTrigger>
@@ -43,10 +69,8 @@ export default function ShowAllSolanaWalletsDialog({
             solanaWallets.map((wallet, index) => (
               <Card key={index} className="w-full mb-4">
                 <CardContent className="flex flex-col gap-3">
-                  {/* Wallet Number */}
-                  <h2 className="font-bold py-2">Wallet {index + 1}</h2>
+                  <h2 className="font-bold py-2">Wallet {index + 1} - Balance: {walletBalances[index]?.toFixed(4)} SOL</h2>
 
-                  {/* Address Field */}
                   <div className="mb-4">
                     <Label htmlFor={`address-${index}`} className="text-gray-400">
                       Address
@@ -65,7 +89,6 @@ export default function ShowAllSolanaWalletsDialog({
                     </div>
                   </div>
 
-                  {/* Private Key Field */}
                   <div className="mb-4">
                     <Label htmlFor={`privateKey-${index}`} className="text-gray-400">
                       Private Key
@@ -77,7 +100,6 @@ export default function ShowAllSolanaWalletsDialog({
                         readOnly
                         className="bg-white-700 dark:bg-gray-700 text-black dark:text-white border-black dark:border-none pl-4 pr-16 py-2 rounded-lg w-full"
                       />
-                      {/* Toggle Visibility Icon */}
                       {visiblePrivateKeys[index] ? (
                         <Eye
                           className="absolute right-10 top-2 w-5 h-5 cursor-pointer text-gray-400 dark:hover:text-white hover:text-black"
@@ -89,7 +111,6 @@ export default function ShowAllSolanaWalletsDialog({
                           onClick={() => togglePrivateKeyVisibility(index)}
                         />
                       )}
-                      {/* Copy Icon */}
                       <Clipboard
                         className="absolute right-3 top-2 w-5 h-5 cursor-pointer text-gray-400 dark:hover:text-white hover:text-black"
                         onClick={() => copyToClipboard(wallet.privateKey)}
@@ -97,7 +118,6 @@ export default function ShowAllSolanaWalletsDialog({
                     </div>
                   </div>
 
-                  {/* Delete Button */}
                   <Button
                     variant="destructive"
                     className="flex items-center gap-2"
