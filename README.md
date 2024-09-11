@@ -4,6 +4,6 @@ Vault is a nextjs functional component designed to generate and manage cryptocur
 
 ## Features
 
-**Generate Wallet**: Create a new wallet and view generated private and public keys.
-**Toggle Visibility**: Show or hide private keys and recovery phrases to enhance security.
-**Copy to Clipboard**: Easily copy private keys, public keys, and the recovery phrase.
+- **Generate Wallet**: Create a new wallet and view generated private and public keys.
+- **Toggle Visibility**: Show or hide private keys and recovery phrases to enhance security.
+- **Copy to Clipboard**: Easily copy private keys, public keys, and the recovery phrase.
